@@ -16,11 +16,19 @@ import "hardhat/console.sol";
 contract StakingContract is Initializable, Context {
   using SafeMath for uint256;
   address constant FactoryUniswap = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
+  address public owner;
 
-
-  function initialize() public initializer {
+  function initialize(address _owner) public initializer {
+    owner = _owner;
     console.log("Initializing the contract...");
   }
 
-
+  /** 
+    @dev Gets the pairs address between two tokens.
+    @notice This calls the function of `IUniswapFactory`.
+    @return The address of the pair in the `factory`.
+  **/
+  function _getAddressPair(address _tokenA, address _tokenB) internal view returns(address) {
+    return IUniswapV2Factory(FactoryUniswap).getPair(_tokenA, _tokenB);
+  }
 }
