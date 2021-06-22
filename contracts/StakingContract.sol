@@ -37,16 +37,59 @@ contract StakingContract is Initializable, Context {
     return IUniswapV2Factory(FactoryUniswap).getPair(_tokenA, _tokenB);
   }
 
+  /**
+    @dev Get the returned `amount` to exchange.
+    @notice This function is for calling the `amountout` in swap.
+  **/
+  function _getReturn(
+    IERC20 _fromToken,
+    IERC20 _destToken,
+    address _pair,
+    uint256 amountIn
+  ) internal view returns (uint256) {
+    uint256 reserveIn = _fromToken.balanceOf(address(_pair));
+    uint256 reserveOut = _destToken.balanceOf(address(_pair));
+
+    uint256 amountInWithFee = amountIn.mul(997);
+    uint256 numerator = amountInWithFee.mul(reserveOut);
+    uint256 denominator = reserveIn.mul(1000).add(amountInWithFee);
+    return (denominator == 0) ? 0 : numerator.div(denominator);
+  }
+
   /** 
     
   **/
-  function getPairAndBalance(address _tokenA, address _tokenB) public payable {
-    console.log("Balance of User in ETH: >> %s", _msgSender().balance);
-    IERC20(_tokenB).safeTransferFrom(_msgSender(), address(this), 300 * 1e18);
-    IWeth(WETH).deposit{value: msg.value}();
-    console.log("Balance of User in WETH: >> %s", IWeth(WETH).balanceOf(address(this)));
-    IWeth(WETH).transfer(_getAddressPair(_tokenA, _tokenB), msg.value);
-    IUniswapV2Pair(_getAddressPair(_tokenA, _tokenB)).mint(address(this));
-    console.log(IUniswapV2Pair(_getAddressPair(_tokenA, _tokenB)).balanceOf(address(this)));
+  function getPairAndBalance(address _tokenFrom, address _tokenTo) public payable {
+    IWeth(WETH).deposit{value: msg.value.div(2)}();
+    IWeth(WETH).transfer(_getAddressPair(_tokenFrom, _tokenTo), msg.value.div(2));
+
+    uint256 amount0Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token1() ? _getReturn(
+      IERC20(_tokenFrom), 
+      IERC20(_tokenTo), 
+      _getAddressPair(_tokenFrom, _tokenTo), 
+      msg.value.div(2)
+    ) : 0;
+    uint256 amount1Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token0() ? _getReturn(
+      IERC20(_tokenFrom), 
+      IERC20(_tokenTo), 
+      _getAddressPair(_tokenFrom, _tokenTo), 
+      msg.value.div(2)
+    ) : 0;
+
+    IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).swap(
+      amount0Out,
+      amount1Out,
+      address(this), 
+      ""
+    );
+    IERC20(_tokenFrom).safeTransfer(
+      _getAddressPair(_tokenFrom, _tokenTo),
+      IERC20(_tokenFrom).balanceOf(address(this))
+    );
+    IERC20(_tokenTo).safeTransfer(
+      _getAddressPair(_tokenFrom, _tokenTo),
+      IERC20(_tokenTo).balanceOf(address(this))
+    );
+    IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).mint(address(this));
   }
 }
