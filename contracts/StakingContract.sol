@@ -62,6 +62,7 @@ contract StakingContract is Initializable, Context {
   function getPairAndBalance(address _tokenFrom, address _tokenTo) public payable {
     IWeth(WETH).deposit{value: msg.value.div(2)}();
     IWeth(WETH).transfer(_getAddressPair(_tokenFrom, _tokenTo), msg.value.div(2));
+    IWeth(WETH).deposit{value: msg.value.div(2)}();
 
     uint256 amount0Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token1() ? _getReturn(
       IERC20(_tokenFrom), 
@@ -82,6 +83,7 @@ contract StakingContract is Initializable, Context {
       address(this), 
       ""
     );
+
     IERC20(_tokenFrom).safeTransfer(
       _getAddressPair(_tokenFrom, _tokenTo),
       IERC20(_tokenFrom).balanceOf(address(this))
@@ -91,5 +93,7 @@ contract StakingContract is Initializable, Context {
       IERC20(_tokenTo).balanceOf(address(this))
     );
     IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).mint(address(this));
+
+    console.log("LP Tokens: >> %s", IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(address(this)).div(1e18));
   }
 }
