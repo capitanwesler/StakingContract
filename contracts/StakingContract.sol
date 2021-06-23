@@ -141,6 +141,19 @@ contract StakingContract is Initializable, Context {
     stakeholders.pop();
   }
 
+  /**
+    @notice A method to retrieve the stake for a stakeholder.
+    @param _stakeholder The stakeholder to retrieve the stake for.
+    @return uint256 The amount in WEI staked.
+  **/
+  function stakeOf(address _stakeholder)
+    public
+    view
+    returns(uint256)
+  {
+    return stakes[_stakeholder];
+  }
+
   /** 
     @notice A method to create a stake.
     @dev The use need to send the ether and be added as a stake holder.
