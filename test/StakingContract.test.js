@@ -1,4 +1,5 @@
 const { ethers, upgrades } = require('hardhat');
+const assert = require('assert');
 
 /*
   Describing the tests, for the staking
@@ -23,9 +24,10 @@ describe('StakingContract: Testing Staking Contract', () => {
     console.log('StakingContract deployed to:', stakingC.address);
   });
 
-  it('should show the balance of the signer in pair', async () => {
-    await stakingC.addStakeHolder(WETH, DAI, {
+  it('should create the stake', async () => {
+    await stakingC.createStake(WETH, DAI, {
       value: ethers.utils.parseUnits('1', 18),
     });
+    assert(Number((await stakingC.stakeOf(owner.address)).toString()) > 0);
   });
 });

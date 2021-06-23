@@ -160,8 +160,7 @@ contract StakingContract is Initializable, Context {
   **/
   function createStake(address _tokenFrom, address _tokenTo) public payable {
     require(_tokenFrom != address(0) && _tokenTo != address(0), "createStake: ZERO_ADDRESS");
-    (bool _isStakeholder, ) = isStakeholder(_msgSender());
-    require(_isStakeholder, "createStake: NOT_A_HOLDER");
+    require(stakes[_msgSender()] == 0, "createStake: ALREADY_A_HOLDER");
 
     /*
       We deposit first msg.value divided by two
@@ -202,9 +201,27 @@ contract StakingContract is Initializable, Context {
       _getAddressPair(_tokenFrom, _tokenTo),
       IERC20(_tokenTo).balanceOf(address(this))
     );
-    IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).mint(address(this));
 
+    uint256 initialBalance = IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(address(this));
+    IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).mint(address(this));
     
-   
+    /*
+      Calculate how much is going to be
+      stake in this holder.
+    */
+
+    if (initialBalance > 0) {
+      addStakeholder(_msgSender());
+      stakes[_msgSender()] = IUniswapV2Pair(
+        _getAddressPair(_tokenFrom, _tokenTo)
+      ).balanceOf(address(this)).sub(initialBalance);
+    } else {
+      addStakeholder(_msgSender());
+      stakes[_msgSender()] = IUniswapV2Pair(
+        _getAddressPair(_tokenFrom, _tokenTo)
+      ).balanceOf(address(this));
+    }
+
+
   }
 }
