@@ -128,6 +128,19 @@ contract StakingContract is Initializable, Context {
     stakeholders.push(_stakeholder);
   }
 
+  /**
+    @notice A method to remove a stakeholder.
+    @param _stakeholder The stakeholder to remove.
+  **/
+  function removeStakeholder(address _stakeholder)
+    public
+  {
+    (bool _isStakeholder, uint256 _index) = isStakeholder(_stakeholder);
+    require(_isStakeholder, "removeStakeholder: NOT_A_HOLDER");
+    stakeholders[_index] = stakeholders[stakeholders.length - 1];
+    stakeholders.pop();
+  }
+
   /** 
     @notice A method to create a stake.
     @dev The use need to send the ether and be added as a stake holder.
