@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
-* @title Staking Token (STK)
-* @author Guillermo Rivas
+* @title Staking Token (STK).
+* @author Guillermo Rivas.
 * @notice Implements a basic ERC20 staking token.
 */
 contract StakingToken is ERC20, Ownable {

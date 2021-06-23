@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -16,17 +17,12 @@ import "hardhat/console.sol";
   @author Guillermo Rivas (@capitanwesler).
 **/
 
-contract StakingContract is Initializable, Context {
+contract StakingContract is Initializable, Context, Ownable {
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
 
   address constant FactoryUniswap = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
   address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-
-  /**
-    @notice The owner of the contract.
-  **/
-  address public owner;
 
   /**
     @notice To know who is a stakeholder.
@@ -39,9 +35,7 @@ contract StakingContract is Initializable, Context {
   mapping(address => uint256) internal stakes;
 
   
-  function initialize(address _owner) public initializer {
-    owner = _owner;
-  }
+  function initialize() public initializer {}
 
   /** 
     @dev Gets the pairs address between two tokens.
