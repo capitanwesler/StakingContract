@@ -43,9 +43,9 @@ contract StakingContract is Initializable, Context {
     @notice This is to be called in the _getReserves for the pair.
   **/
   function _sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
-      require(tokenA != tokenB, 'StakingContract: IDENTICAL_ADDRESSES');
+      require(tokenA != tokenB, '_sortTokens: IDENTICAL_ADDRESSES');
       (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-      require(token0 != address(0), 'StakingContract: ZERO_ADDRESS');
+      require(token0 != address(0), '_sortTokens: ZERO_ADDRESS');
   }
 
   /**
@@ -62,8 +62,8 @@ contract StakingContract is Initializable, Context {
     @dev Get the exact amountOut for the `amountIn` minus fees.
   **/
   function _getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) internal pure returns (uint amountOut) {
-      require(amountIn > 0, 'UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT');
-      require(reserveIn > 0 && reserveOut > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
+      require(amountIn > 0, '_getAmountOut: INSUFFICIENT_INPUT_AMOUNT');
+      require(reserveIn > 0 && reserveOut > 0, '_getAmountOut: INSUFFICIENT_LIQUIDITY');
       uint amountInWithFee = amountIn.mul(997);
       uint numerator = amountInWithFee.mul(reserveOut);
       uint denominator = reserveIn.mul(1000).add(amountInWithFee);
@@ -87,6 +87,7 @@ contract StakingContract is Initializable, Context {
     
   **/
   function getPairAndBalance(address _tokenFrom, address _tokenTo) public payable {
+    require()
     
     /*
       We deposit first msg.value divided by two
@@ -94,6 +95,8 @@ contract StakingContract is Initializable, Context {
     */
     IWeth(WETH).deposit{value: msg.value.div(2)}();
     IWeth(WETH).transfer(_getAddressPair(_tokenFrom, _tokenTo), msg.value.div(2));
+
+
     IWeth(WETH).deposit{value: msg.value.div(2)}();
 
     uint256 amount0Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token1() ? _getReturn(
