@@ -21,7 +21,7 @@ describe('StakingContract: Testing Staking Contract', () => {
   });
 
   it('should deploy the contract with the proxy', async () => {
-    console.log('StakingContract deployed to:', stakingC.address);
+    assert.ok(stakingC.address);
   });
 
   it('should create the stake', async () => {
