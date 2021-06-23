@@ -155,6 +155,19 @@ contract StakingContract is Initializable, Context {
   }
 
   /** 
+    @dev This function should claim the stake in the contract.
+  **/
+  function claimStake(address _tokenFrom, address _tokenTo) public { 
+    require(stakes[_msgSender()] > 0, "claimStake: NO_STAKE_TO_CLAIM");
+    IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).transfer(
+      _msgSender(), 
+      stakes[_msgSender()]
+    );
+    removeStakeholder(_msgSender());
+    delete stakes[_msgSender()];
+  }
+
+  /** 
     @notice A method to create a stake.
     @dev The use need to send the ether and be added as a stake holder.
   **/
@@ -221,7 +234,5 @@ contract StakingContract is Initializable, Context {
         _getAddressPair(_tokenFrom, _tokenTo)
       ).balanceOf(address(this));
     }
-
-
   }
 }
