@@ -87,7 +87,7 @@ contract StakingContract is Initializable, Context {
     
   **/
   function getPairAndBalance(address _tokenFrom, address _tokenTo) public payable {
-    require()
+    require(_tokenFrom != address(0) && _tokenTo != address(0), "getPairAndBalance: ZERO_ADDRESS");
     
     /*
       We deposit first msg.value divided by two
@@ -96,15 +96,18 @@ contract StakingContract is Initializable, Context {
     IWeth(WETH).deposit{value: msg.value.div(2)}();
     IWeth(WETH).transfer(_getAddressPair(_tokenFrom, _tokenTo), msg.value.div(2));
 
-
+    /*
+      After that we deposit the ETH into WETH,
+      to mint after and get the LP Tokens.
+    */
     IWeth(WETH).deposit{value: msg.value.div(2)}();
 
-    uint256 amount0Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token1() ? _getReturn(
+    uint256 amount0Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token0() ? _getReturn(
       _tokenFrom, 
       _tokenTo, 
       msg.value.div(2)
     ) : 0;
-    uint256 amount1Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token0() ? _getReturn(
+    uint256 amount1Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token1() ? _getReturn(
       _tokenFrom, 
       _tokenTo, 
       msg.value.div(2)

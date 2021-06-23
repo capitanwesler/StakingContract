@@ -23,15 +23,9 @@ describe('StakingContract: Testing Staking Contract', () => {
     console.log('StakingContract deployed to:', stakingC.address);
   });
 
-  it('should get the quote of the tokens', async () => {
-    await stakingC.getQuote(WETH, USDT, {
-      value: ethers.utils.parseEther('1'),
+  it('should show the balance of the signer in pair', async () => {
+    await stakingC.getPairAndBalance(WETH, DAI, {
+      value: ethers.utils.parseUnits('1', 18),
     });
   });
-
-  // it('should show the balance of the signer in pair', async () => {
-  //   await stakingC.getPairAndBalance(WETH, DAI, {
-  //     value: ethers.utils.parseUnits('1', 18),
-  //   });
-  // });
 });
