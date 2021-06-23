@@ -24,7 +24,7 @@ describe('StakingContract: Testing Staking Contract', () => {
   });
 
   it('should show the balance of the signer in pair', async () => {
-    await stakingC.getPairAndBalance(WETH, DAI, {
+    await stakingC.addStakeHolder(WETH, DAI, {
       value: ethers.utils.parseUnits('1', 18),
     });
   });

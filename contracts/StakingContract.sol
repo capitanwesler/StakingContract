@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IWeth.sol";
 import "hardhat/console.sol";
@@ -20,13 +19,28 @@ import "hardhat/console.sol";
 contract StakingContract is Initializable, Context {
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
+
   address constant FactoryUniswap = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
   address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+
+  /**
+    @notice The owner of the contract.
+  **/
   address public owner;
 
+  /**
+    @notice To know who is a stakeholder.
+  **/
+  address[] internal stakeholders;
+
+  /**
+    @notice The stakes for each stakeholder.
+  **/
+  mapping(address => uint256) internal stakes;
+
+  
   function initialize(address _owner) public initializer {
     owner = _owner;
-    console.log("Initializing the contract...");
   }
 
   /** 
@@ -83,12 +97,46 @@ contract StakingContract is Initializable, Context {
     return _getAmountOut(amountIn, reserveA, reserveB);
   }
 
-  /** 
-    
+  /**
+    @notice A method to check if an address is a stakeholder.
+    @param _address The address to verify.
+    @return bool, uint256 Whether the address is a stakeholder,
+    and if so its position in the stakeholders array.
   **/
-  function getPairAndBalance(address _tokenFrom, address _tokenTo) public payable {
-    require(_tokenFrom != address(0) && _tokenTo != address(0), "getPairAndBalance: ZERO_ADDRESS");
-    
+  function isStakeholder(address _address)
+    public
+    view
+    returns(bool, uint256)
+  {
+      for (uint256 i = 0; i < stakeholders.length; i++){
+        if (_address == stakeholders[i]) {
+          return (true, i);
+        }
+      }
+      return (false, 0);
+  }
+
+  /**
+    @notice A method to add a stakeholder.
+    @param _stakeholder The stakeholder to add.
+  **/
+  function addStakeholder(address _stakeholder)
+    public
+  {
+    (bool _isStakeholder, ) = isStakeholder(_stakeholder);
+    require(!_isStakeholder, "addStakeHolder: ALREADY_A_HOLDER");
+    stakeholders.push(_stakeholder);
+  }
+
+  /** 
+    @notice A method to create a stake.
+    @dev The use need to send the ether and be added as a stake holder.
+  **/
+  function createStake(address _tokenFrom, address _tokenTo) public payable {
+    require(_tokenFrom != address(0) && _tokenTo != address(0), "createStake: ZERO_ADDRESS");
+    (bool _isStakeholder, ) = isStakeholder(_msgSender());
+    require(_isStakeholder, "createStake: NOT_A_HOLDER");
+
     /*
       We deposit first msg.value divided by two
       to make the swap to the specific token.
@@ -102,12 +150,12 @@ contract StakingContract is Initializable, Context {
     */
     IWeth(WETH).deposit{value: msg.value.div(2)}();
 
-    uint256 amount0Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token0() ? _getReturn(
+    uint256 amount0Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token1() ? _getReturn(
       _tokenFrom, 
       _tokenTo, 
       msg.value.div(2)
     ) : 0;
-    uint256 amount1Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token1() ? _getReturn(
+    uint256 amount1Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token0() ? _getReturn(
       _tokenFrom, 
       _tokenTo, 
       msg.value.div(2)
@@ -130,6 +178,7 @@ contract StakingContract is Initializable, Context {
     );
     IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).mint(address(this));
 
-    console.log("LP Tokens: >> %s", IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(address(this)).div(1e18));
+    
+   
   }
 }
