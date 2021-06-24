@@ -92,9 +92,51 @@ contract StakingContract is Initializable, Context {
     address _fromToken,
     address _destToken,
     uint256 amountIn
-  ) internal view returns (uint256) {
+  ) public view returns (uint256) {
     (uint256 reserveA, uint256 reserveB) = _getReserves(_fromToken, _destToken);
     return _getAmountOut(amountIn, reserveA, reserveB);
+  }
+
+  function _swap(address _tokenFrom, address _tokenTo, uint256 _amountIn, address _address) internal {
+    /*
+      We deposit first msg.value divided by two
+      to make the swap to the specific token.
+    */
+    IWeth(WETH).deposit{value: _amountIn.div(2)}();
+    IWeth(WETH).transfer(_getAddressPair(_tokenFrom, _tokenTo), _amountIn.div(2));
+
+    /*
+      After that we deposit the ETH into WETH,
+      to mint after and get the LP Tokens.
+    */
+    IWeth(WETH).deposit{value: _amountIn.div(2)}();
+
+    uint256 amount0Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token1() ? _getReturn(
+      _tokenFrom, 
+      _tokenTo, 
+      _amountIn.div(2)
+    ) : 0;
+    uint256 amount1Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token0() ? _getReturn(
+      _tokenFrom, 
+      _tokenTo, 
+      _amountIn.div(2)
+    ) : 0;
+
+    IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).swap(
+      amount0Out,
+      amount1Out,
+      _address, 
+      ""
+    );
+
+    IERC20(_tokenFrom).safeTransfer(
+      _getAddressPair(_tokenFrom, _tokenTo),
+      IERC20(_tokenFrom).balanceOf(_address)
+    );
+    IERC20(_tokenTo).safeTransfer(
+      _getAddressPair(_tokenFrom, _tokenTo),
+      IERC20(_tokenTo).balanceOf(_address)
+    );
   }
 
   /**
@@ -183,45 +225,8 @@ contract StakingContract is Initializable, Context {
     require(stakes[_msgSender()] == 0, "createStake: ALREADY_A_HOLDER");
 
     if (IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(_msgSender()) == 0) {
-      /*
-        We deposit first msg.value divided by two
-        to make the swap to the specific token.
-      */
-      IWeth(WETH).deposit{value: msg.value.div(2)}();
-      IWeth(WETH).transfer(_getAddressPair(_tokenFrom, _tokenTo), msg.value.div(2));
-
-      /*
-        After that we deposit the ETH into WETH,
-        to mint after and get the LP Tokens.
-      */
-      IWeth(WETH).deposit{value: msg.value.div(2)}();
-
-      uint256 amount0Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token1() ? _getReturn(
-        _tokenFrom, 
-        _tokenTo, 
-        msg.value.div(2)
-      ) : 0;
-      uint256 amount1Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token0() ? _getReturn(
-        _tokenFrom, 
-        _tokenTo, 
-        msg.value.div(2)
-      ) : 0;
-
-      IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).swap(
-        amount0Out,
-        amount1Out,
-        address(this), 
-        ""
-      );
-
-      IERC20(_tokenFrom).safeTransfer(
-        _getAddressPair(_tokenFrom, _tokenTo),
-        IERC20(_tokenFrom).balanceOf(address(this))
-      );
-      IERC20(_tokenTo).safeTransfer(
-        _getAddressPair(_tokenFrom, _tokenTo),
-        IERC20(_tokenTo).balanceOf(address(this))
-      );
+      
+      _swap(_tokenFrom, _tokenTo, msg.value, address(this));
 
       uint256 initialBalance = IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(address(this));
       IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).mint(address(this));
