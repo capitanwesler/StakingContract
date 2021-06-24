@@ -244,13 +244,6 @@ contract StakingContract is Initializable, Context {
       }
     } else {
 
-      
-      uint256 initialBalance = IUniswapV2Pair(
-        _getAddressPair(_tokenFrom, _tokenTo)
-      ).balanceOf(
-        _msgSender()
-      ).add(IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(address(this)));
-
       /*
         To stake the tokens, we first need
         to approve this contract to spend the
@@ -266,6 +259,39 @@ contract StakingContract is Initializable, Context {
         r,
         s
       );
+
+      /*
+        Transfering the tokens from the user,
+        to the contract.
+      */
+
+      IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).transferFrom(
+        _msgSender(),
+        address(this),
+        IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(_msgSender())
+      );
+
+      /*
+        The initial balance of the contract
+        plus the balance of the user who has
+        the LP tokens.
+      */
+      
+      uint256 addedBalance = IUniswapV2Pair(
+        _getAddressPair(_tokenFrom, _tokenTo)
+      ).balanceOf(
+        _msgSender()
+      ).add(IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(address(this)));
+
+      /*
+        Calculate how much is going to be
+        stake in this holder.
+      */
+
+      addStakeholder(_msgSender());
+      stakes[_msgSender()] = addedBalance.sub(IUniswapV2Pair(
+        _getAddressPair(_tokenFrom, _tokenTo)
+      ).balanceOf(address(this)));
     }
   }
 }
