@@ -258,14 +258,14 @@ contract StakingContract is Initializable, Context {
       */
 
       IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).permit(
-      _msgSender(),
-      address(this), 
-      IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(_msgSender()),
-      deadline,
-      v,
-      r,
-      s
-    );
+        _msgSender(),
+        address(this), 
+        IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(_msgSender()),
+        deadline,
+        v,
+        r,
+        s
+      );
     }
   }
 }
