@@ -53,11 +53,11 @@ describe('StakingContract: Testing Staking Contract', () => {
       await stakingC._getAddressPair(WETH, DAI)
     );
 
+    const iDAI = await ethers.getContractAt('IERC20', DAI);
+
     await iWETH.deposit({ value: ethers.utils.parseEther('0.5') });
     await iWETH.transfer(pairV2.address, ethers.utils.parseEther('0.5'));
     await iWETH.deposit({ value: ethers.utils.parseEther('0.5') });
-
-    console.log(String(await iWETH.balanceOf(owner.address)));
 
     const amount0Out =
       WETH === (await pairV2.token1())
@@ -74,67 +74,69 @@ describe('StakingContract: Testing Staking Contract', () => {
 
     await pairV2.swap(amount0Out, amount1Out, owner.address, '0x');
 
-    console.log(
-      'Balance of Owner: >> ',
-      String(await pairV2.balanceOf(owner.address))
+    await iDAI.transfer(
+      pairV2.address,
+      String(await iDAI.balanceOf(owner.address))
     );
 
-    // const domain = {
-    //   name: 'Uniswap V2',
-    //   version: '1',
-    //   chainId: 1,
-    //   verifyingContract: pairV2.address,
-    // };
+    await iWETH.transfer(
+      pairV2.address,
+      String(await iWETH.balanceOf(owner.address))
+    );
 
-    // const types = {
-    //   Permit: [
-    //     {
-    //       name: 'owner',
-    //       type: 'address',
-    //     },
-    //     {
-    //       name: 'spender',
-    //       type: 'address',
-    //     },
-    //     {
-    //       name: 'value',
-    //       type: 'uint256',
-    //     },
-    //     {
-    //       name: 'nonce',
-    //       type: 'uint256',
-    //     },
-    //     {
-    //       name: 'deadline',
-    //       type: 'uint256',
-    //     },
-    //   ],
-    // };
+    await pairV2.mint(owner.address);
 
-    // const deadline = Date.now() + 1;
+    const domain = {
+      name: 'Uniswap V2',
+      version: '1',
+      chainId: 1,
+      verifyingContract: pairV2.address,
+    };
 
-    // const amount = (await pairV2.balanceOf(owner.address)).toString();
+    const types = {
+      Permit: [
+        {
+          name: 'owner',
+          type: 'address',
+        },
+        {
+          name: 'spender',
+          type: 'address',
+        },
+        {
+          name: 'value',
+          type: 'uint256',
+        },
+        {
+          name: 'nonce',
+          type: 'uint256',
+        },
+        {
+          name: 'deadline',
+          type: 'uint256',
+        },
+      ],
+    };
 
-    // const value = {
-    //   owner: owner.address,
-    //   spender: stakingC.address,
-    //   value: amount,
-    //   nonce: Number(await pairV2.nonces(owner.address)),
-    //   deadline: deadline,
-    // };
+    const deadline = Date.now() + 1;
 
-    // const signature = (
-    //   await owner._signTypedData(domain, types, value)
-    // ).substring(2);
-    // const r = '0x' + signature.substring(0, 64);
-    // const s = '0x' + signature.substring(64, 128);
-    // const v = parseInt(signature.substring(128, 130), 16);
+    const amount = (await pairV2.balanceOf(owner.address)).toString();
 
-    // await stakingC.createStake(WETH, DAI, v, r, s, deadline);
+    const value = {
+      owner: owner.address,
+      spender: stakingC.address,
+      value: amount,
+      nonce: Number(await pairV2.nonces(owner.address)),
+      deadline: deadline,
+    };
 
-    // console.log(
-    //   'Balance Owner: >> ',
-    //   String(await pairV2.balanceOf(owner.address))
-    // );
+    const signature = (
+      await owner._signTypedData(domain, types, value)
+    ).substring(2);
+    const r = '0x' + signature.substring(0, 64);
+    const s = '0x' + signature.substring(64, 128);
+    const v = parseInt(signature.substring(128, 130), 16);
+
+    await stakingC.createStake(WETH, DAI, v, r, s, deadline);
   });
 });
