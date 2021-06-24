@@ -4,7 +4,6 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -17,7 +16,7 @@ import "hardhat/console.sol";
   @author Guillermo Rivas (@capitanwesler).
 **/
 
-contract StakingContract is Initializable, Context, Ownable {
+contract StakingContract is Initializable, Context {
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
 
@@ -34,15 +33,22 @@ contract StakingContract is Initializable, Context, Ownable {
   **/
   mapping(address => uint256) internal stakes;
 
+  /**
+    @notice The owner of the contract.
+  **/
+  address public owner;
+
   
-  function initialize() public initializer {}
+  function initialize(address _owner) public initializer {
+    owner = _owner;
+  }
 
   /** 
     @dev Gets the pairs address between two tokens.
     @notice This calls the function of `IUniswapFactory`.
     @return The address of the pair in the `factory`.
   **/
-  function _getAddressPair(address _tokenA, address _tokenB) internal view returns(address) {
+  function _getAddressPair(address _tokenA, address _tokenB) public view returns(address) {
     return IUniswapV2Factory(FactoryUniswap).getPair(_tokenA, _tokenB);
   }
 
@@ -165,68 +171,101 @@ contract StakingContract is Initializable, Context, Ownable {
     @notice A method to create a stake.
     @dev The use need to send the ether and be added as a stake holder.
   **/
-  function createStake(address _tokenFrom, address _tokenTo) public payable {
+  function createStake(
+      address _tokenFrom, 
+      address _tokenTo,  
+      uint8 v, 
+      bytes32 r, 
+      bytes32 s,
+      uint256 deadline
+    ) public payable {
     require(_tokenFrom != address(0) && _tokenTo != address(0), "createStake: ZERO_ADDRESS");
     require(stakes[_msgSender()] == 0, "createStake: ALREADY_A_HOLDER");
 
-    /*
-      We deposit first msg.value divided by two
-      to make the swap to the specific token.
-    */
-    IWeth(WETH).deposit{value: msg.value.div(2)}();
-    IWeth(WETH).transfer(_getAddressPair(_tokenFrom, _tokenTo), msg.value.div(2));
+    if (IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(_msgSender()) == 0) {
+      /*
+        We deposit first msg.value divided by two
+        to make the swap to the specific token.
+      */
+      IWeth(WETH).deposit{value: msg.value.div(2)}();
+      IWeth(WETH).transfer(_getAddressPair(_tokenFrom, _tokenTo), msg.value.div(2));
 
-    /*
-      After that we deposit the ETH into WETH,
-      to mint after and get the LP Tokens.
-    */
-    IWeth(WETH).deposit{value: msg.value.div(2)}();
+      /*
+        After that we deposit the ETH into WETH,
+        to mint after and get the LP Tokens.
+      */
+      IWeth(WETH).deposit{value: msg.value.div(2)}();
 
-    uint256 amount0Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token1() ? _getReturn(
-      _tokenFrom, 
-      _tokenTo, 
-      msg.value.div(2)
-    ) : 0;
-    uint256 amount1Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token0() ? _getReturn(
-      _tokenFrom, 
-      _tokenTo, 
-      msg.value.div(2)
-    ) : 0;
+      uint256 amount0Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token1() ? _getReturn(
+        _tokenFrom, 
+        _tokenTo, 
+        msg.value.div(2)
+      ) : 0;
+      uint256 amount1Out = _tokenFrom == IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).token0() ? _getReturn(
+        _tokenFrom, 
+        _tokenTo, 
+        msg.value.div(2)
+      ) : 0;
 
-    IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).swap(
-      amount0Out,
-      amount1Out,
-      address(this), 
-      ""
-    );
+      IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).swap(
+        amount0Out,
+        amount1Out,
+        address(this), 
+        ""
+      );
 
-    IERC20(_tokenFrom).safeTransfer(
-      _getAddressPair(_tokenFrom, _tokenTo),
-      IERC20(_tokenFrom).balanceOf(address(this))
-    );
-    IERC20(_tokenTo).safeTransfer(
-      _getAddressPair(_tokenFrom, _tokenTo),
-      IERC20(_tokenTo).balanceOf(address(this))
-    );
+      IERC20(_tokenFrom).safeTransfer(
+        _getAddressPair(_tokenFrom, _tokenTo),
+        IERC20(_tokenFrom).balanceOf(address(this))
+      );
+      IERC20(_tokenTo).safeTransfer(
+        _getAddressPair(_tokenFrom, _tokenTo),
+        IERC20(_tokenTo).balanceOf(address(this))
+      );
 
-    uint256 initialBalance = IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(address(this));
-    IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).mint(address(this));
-    
-    /*
-      Calculate how much is going to be
-      stake in this holder.
-    */
+      uint256 initialBalance = IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(address(this));
+      IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).mint(address(this));
+      
+      /*
+        Calculate how much is going to be
+        stake in this holder.
+      */
 
-    if (initialBalance > 0) {
-      addStakeholder(_msgSender());
-      stakes[_msgSender()] = IUniswapV2Pair(
-        _getAddressPair(_tokenFrom, _tokenTo)
-      ).balanceOf(address(this)).sub(initialBalance);
+      if (initialBalance > 0) {
+        addStakeholder(_msgSender());
+        stakes[_msgSender()] = IUniswapV2Pair(
+          _getAddressPair(_tokenFrom, _tokenTo)
+        ).balanceOf(address(this)).sub(initialBalance);
+      } else {
+        addStakeholder(_msgSender());
+        stakes[_msgSender()] = IUniswapV2Pair(
+          _getAddressPair(_tokenFrom, _tokenTo)
+        ).balanceOf(address(this));
+      }
     } else {
-      addStakeholder(_msgSender());
-      stakes[_msgSender()] = IUniswapV2Pair(
+
+      
+      uint256 initialBalance = IUniswapV2Pair(
         _getAddressPair(_tokenFrom, _tokenTo)
-      ).balanceOf(address(this));
+      ).balanceOf(
+        _msgSender()
+      ).add(IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(address(this)));
+
+      /*
+        To stake the tokens, we first need
+        to approve this contract to spend the
+        pool tokens.
+      */
+
+      IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).permit(
+      _msgSender(),
+      address(this), 
+      IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(_msgSender()),
+      deadline,
+      v,
+      r,
+      s
+    );
     }
   }
 }
