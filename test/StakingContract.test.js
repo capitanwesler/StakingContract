@@ -4,6 +4,9 @@ const assert = require('assert');
 /*
   Describing the tests, for the staking
   contract.
+
+  It also deploys the token contract to
+  give the rewards for the user.
 */
 describe('StakingContract: Testing Staking Contract', () => {
   let stakingC;
@@ -13,13 +16,14 @@ describe('StakingContract: Testing Staking Contract', () => {
 
   let owner;
   let account2;
+  let account3;
 
   const WETH = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
   const DAI = '0x6b175474e89094c44da98b954eedeac495271d0f';
   const USDT = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
 
   before(async () => {
-    [owner, account2] = await ethers.getSigners();
+    [owner, account2, account3] = await ethers.getSigners();
 
     const StakeToken = await ethers.getContractFactory('StakeToken');
     stakeToken = await upgrades.deployProxy(StakeToken, ['StakeToken', 'STK']);
@@ -69,6 +73,14 @@ describe('StakingContract: Testing Staking Contract', () => {
         }
       );
     assert(Number((await stakingC.stakeOf(account2.address)).toString()) > 0);
+  });
+
+  it('should reject the transaction, because the actual user is not a holder', async () => {
+    try {
+      await stakingC.connect(account3).claimStake(WETH, DAI);
+    } catch (error) {
+      assert(error);
+    }
   });
 
   it('should sign a transaction and then approve with LP tokens', async () => {

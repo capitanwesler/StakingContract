@@ -207,20 +207,37 @@ contract StakingContract is Initializable, Context {
     return stakes[_stakeholder];
   }
 
+  function claimReward(address _tokenFrom, address _tokenTo) public {
+    (bool _isStakeholder, ) = isStakeholder(_msgSender());
+    require(_isStakeholder, "claimStake: NO_STAKEHOLDER");
+    require(stakes[_msgSender()] > 0, "claimStake: NO_STAKE_TO_CLAIM");
+  }
+
   /** 
     @dev This function should claim the stake in the contract.
     @notice This function is going to delete the { stakeholder }
     of the contract, and delete from the { stakes }.
   **/
   function claimStake(address _tokenFrom, address _tokenTo) public { 
+    (bool _isStakeholder, ) = isStakeholder(_msgSender());
+    require(_isStakeholder, "claimStake: NO_STAKEHOLDER");
     require(stakes[_msgSender()] > 0, "claimStake: NO_STAKE_TO_CLAIM");
+
     removeStakeholder(_msgSender());
+
+    /*
+      After we remove the stake holder,
+      we mint the tokens from our token
+      to the stake holder for the reward.
+    */
+
     StakeToken(stakeToken).mint(
       _msgSender(), 
       IUniswapV2Pair(
         _getAddressPair(_tokenFrom, _tokenTo)
       ).balanceOf(address(this)).mul(100).div(1000)
     );
+
     IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).transfer(
       _msgSender(), 
       stakes[_msgSender()]
