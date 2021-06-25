@@ -37,6 +37,7 @@ describe('StakingContract: Testing Staking Contract', () => {
     const StakingContract = await ethers.getContractFactory('StakingContract');
     let stakingCTest = await upgrades.deployProxy(StakingContract, [
       owner.address,
+      stakeToken.address,
     ]);
     await stakingCTest.deployed();
 
