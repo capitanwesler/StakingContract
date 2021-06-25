@@ -16,6 +16,8 @@ import "hardhat/console.sol";
 /**
   @title StakingContract, to staking LP tokens into the contract.
   @author Guillermo Rivas (@capitanwesler).
+  @notice This contract for now works with ETH, it can work or try to work
+  swapping other tokens for maybe other pools in Uniswap.
 **/
 
 contract StakingContract is Initializable, Context {
