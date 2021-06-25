@@ -98,6 +98,15 @@ contract StakingContract is Initializable, Context {
     return _getAmountOut(amountIn, reserveA, reserveB);
   }
 
+  /** 
+    @dev Swap function, to swap between pools in uniswap.
+    @notice It is a internal function, it can't be used outside the contract.
+    @param _tokenFrom Is the token where do you want to swap, for the _tokenTo.
+    @param _tokenTo where do you want to receive the swapped tokens, in this case.
+    @param _amountIn to be swapped for { _tokenFrom } to { _tokenTo }.
+    @param _address to be receive the swapped tokens.
+  **/
+
   function _swap(address _tokenFrom, address _tokenTo, uint256 _amountIn, address _address) internal {
     /*
       We deposit first msg.value divided by two
@@ -128,15 +137,6 @@ contract StakingContract is Initializable, Context {
       amount1Out,
       _address, 
       ""
-    );
-
-    IERC20(_tokenFrom).safeTransfer(
-      _getAddressPair(_tokenFrom, _tokenTo),
-      IERC20(_tokenFrom).balanceOf(_address)
-    );
-    IERC20(_tokenTo).safeTransfer(
-      _getAddressPair(_tokenFrom, _tokenTo),
-      IERC20(_tokenTo).balanceOf(_address)
     );
   }
 
@@ -228,6 +228,21 @@ contract StakingContract is Initializable, Context {
     if (IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(_msgSender()) == 0) {
       
       _swap(_tokenFrom, _tokenTo, msg.value, address(this));
+
+      /*
+        After the swap, we transfer the tokens
+        from the contract, to the `pair`, to do
+        the { mint } function in the `pair`.
+      */
+
+      IERC20(_tokenFrom).safeTransfer(
+        _getAddressPair(_tokenFrom, _tokenTo),
+        IERC20(_tokenFrom).balanceOf(address(this))
+      );
+      IERC20(_tokenTo).safeTransfer(
+        _getAddressPair(_tokenFrom, _tokenTo),
+        IERC20(_tokenTo).balanceOf(address(this))
+      );
 
       uint256 initialBalance = IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(address(this));
       IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).mint(address(this));
