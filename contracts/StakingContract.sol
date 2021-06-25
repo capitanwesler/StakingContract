@@ -272,12 +272,14 @@ contract StakingContract is Initializable, Context {
       to the stake holder for the reward.
     */
 
-    StakeToken(stakeToken).mint(
-      _msgSender(), 
-      IUniswapV2Pair(
-        _getAddressPair(_tokenFrom, _tokenTo)
-      ).balanceOf(address(this)).mul(100).div(1000)
-    );
+    if (!rewardedOf(_msgSender())) {
+      StakeToken(stakeToken).mint(
+        _msgSender(), 
+        IUniswapV2Pair(
+          _getAddressPair(_tokenFrom, _tokenTo)
+        ).balanceOf(address(this)).mul(100).div(1000)
+      );
+    }
 
     IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).transfer(
       _msgSender(), 
