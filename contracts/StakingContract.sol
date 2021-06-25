@@ -55,7 +55,7 @@ contract StakingContract is Initializable, Context {
 
   /**
     @dev Sorts the token to see if either equal, or not.
-    @notice This is to be called in the _getReserves for the pair.
+    @notice This is to be called in the { _getReserves } for the pair.
   **/
   function _sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
       require(tokenA != tokenB, '_sortTokens: IDENTICAL_ADDRESSES');
@@ -151,12 +151,13 @@ contract StakingContract is Initializable, Context {
     view
     returns(bool, uint256)
   {
-      for (uint256 i = 0; i < stakeholders.length; i++){
-        if (_address == stakeholders[i]) {
-          return (true, i);
-        }
+    require(_address != address(0) ,"isStakeholder: ZERO_ADDRESS");
+    for (uint256 i = 0; i < stakeholders.length; i++){
+      if (_address == stakeholders[i]) {
+        return (true, i);
       }
-      return (false, 0);
+    }
+    return (false, 0);
   }
 
   /**
@@ -164,8 +165,9 @@ contract StakingContract is Initializable, Context {
     @param _stakeholder The stakeholder to add.
   **/
   function addStakeholder(address _stakeholder)
-    public
+    internal
   {
+    require(_stakeholder != address(0) ,"addStakeholder: ZERO_ADDRESS");
     (bool _isStakeholder, ) = isStakeholder(_stakeholder);
     require(!_isStakeholder, "addStakeHolder: ALREADY_A_HOLDER");
     stakeholders.push(_stakeholder);
@@ -176,8 +178,9 @@ contract StakingContract is Initializable, Context {
     @param _stakeholder The stakeholder to remove.
   **/
   function removeStakeholder(address _stakeholder)
-    public
+    internal
   {
+    require(_stakeholder != address(0) ,"removeStakeholder: ZERO_ADDRESS");
     (bool _isStakeholder, uint256 _index) = isStakeholder(_stakeholder);
     require(_isStakeholder, "removeStakeholder: NOT_A_HOLDER");
     stakeholders[_index] = stakeholders[stakeholders.length - 1];
