@@ -24,7 +24,10 @@ describe('StakingContract: Testing Staking Contract', () => {
     stakeToken = await upgrades.deployProxy(StakeToken, ['StakeToken', 'STK']);
 
     const StakingContract = await ethers.getContractFactory('StakingContract');
-    stakingC = await upgrades.deployProxy(StakingContract, [owner.address]);
+    stakingC = await upgrades.deployProxy(StakingContract, [
+      owner.address,
+      stakeToken.address,
+    ]);
     await stakingC.deployed();
 
     iWETH = await ethers.getContractAt('IWeth', WETH);
