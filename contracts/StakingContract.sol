@@ -32,7 +32,15 @@ contract StakingContract is Initializable, Context {
 
   /**
     @notice The stakes for each stakeholder.
+    @dev This is the struct, to either see
+    the stake what the user has, and see
+    is already claimed the reward.
   **/
+  struct Stake {
+    uint256 stake;
+    bool reward;
+  }
+
   mapping(address => uint256) internal stakes;
 
   /**
