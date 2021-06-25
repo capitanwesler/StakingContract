@@ -27,10 +27,20 @@ describe('StakingContract: Testing Staking Contract', () => {
   });
 
   it('should deploy the contract with the proxy', async () => {
+    const StakingContract = await ethers.getContractFactory('StakingContract');
+    let stakingCTest = await upgrades.deployProxy(StakingContract, [
+      owner.address,
+    ]);
+    await stakingCTest.deployed();
+
+    assert.ok(stakingCTest.address);
+  });
+
+  it('has a correct address, the deployed contract', async () => {
     assert.ok(stakingC.address);
   });
 
-  it('should create the stake', async () => {
+  it('should create the stake with no LP tokens', async () => {
     await stakingC
       .connect(account2)
       .createStake(
@@ -47,7 +57,7 @@ describe('StakingContract: Testing Staking Contract', () => {
     assert(Number((await stakingC.stakeOf(account2.address)).toString()) > 0);
   });
 
-  it('should sign a transaction and then approve', async () => {
+  it('should sign a transaction and then approve with LP tokens', async () => {
     const pairV2 = await ethers.getContractAt(
       'IUniswapV2Pair',
       await stakingC._getAddressPair(WETH, DAI)
