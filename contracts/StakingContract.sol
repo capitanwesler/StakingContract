@@ -189,8 +189,8 @@ contract StakingContract is Initializable, Context {
 
   /**
     @notice A method to retrieve the stake for a stakeholder.
-    @param _stakeholder The stakeholder to retrieve the stake for.
-    @return uint256 The amount in WEI staked.
+    @param _stakeholder The `stakeholder` to retrieve the stake for.
+    @return uint256 The amount in WEI { staked } in the contract for the specific address.
   **/
   function stakeOf(address _stakeholder)
     public
