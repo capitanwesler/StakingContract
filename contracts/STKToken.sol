@@ -14,4 +14,11 @@ contract StakeToken is Initializable, ERC20Upgradeable {
   function initialize(string memory _name, string memory _symbol) public initializer {
     __ERC20_init(_name, _symbol);
   }
+
+  /** 
+    @dev Adding the mint function for the token to mint.
+  **/
+  function mint(address _to, uint256 _amount) public {
+    _mint(_to, _amount);
+  }
 }

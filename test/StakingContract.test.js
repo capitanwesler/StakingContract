@@ -9,6 +9,7 @@ describe('StakingContract: Testing Staking Contract', () => {
   let stakingC;
   let stakeToken;
   let iWETH;
+  let pairV2;
 
   let owner;
   let account2;
@@ -31,6 +32,11 @@ describe('StakingContract: Testing Staking Contract', () => {
     await stakingC.deployed();
 
     iWETH = await ethers.getContractAt('IWeth', WETH);
+
+    pairV2 = await ethers.getContractAt(
+      'IUniswapV2Pair',
+      await stakingC._getAddressPair(WETH, DAI)
+    );
   });
 
   it('should deploy the contract with the proxy', async () => {
@@ -66,11 +72,6 @@ describe('StakingContract: Testing Staking Contract', () => {
   });
 
   it('should sign a transaction and then approve with LP tokens', async () => {
-    const pairV2 = await ethers.getContractAt(
-      'IUniswapV2Pair',
-      await stakingC._getAddressPair(WETH, DAI)
-    );
-
     const iDAI = await ethers.getContractAt('IERC20', DAI);
 
     await iWETH.deposit({ value: ethers.utils.parseEther('0.5') });
@@ -156,5 +157,12 @@ describe('StakingContract: Testing Staking Contract', () => {
     const v = parseInt(signature.substring(128, 130), 16);
 
     await stakingC.createStake(WETH, DAI, v, r, s, deadline);
+  });
+
+  it('should claim the stake from the contract and receive the tokens', async () => {
+    await stakingC.claimStake(WETH, DAI);
+
+    assert(Number(await pairV2.balanceOf(owner.address)) > 0);
+    assert(Number(await stakeToken.balanceOf(owner.address)) > 0);
   });
 });

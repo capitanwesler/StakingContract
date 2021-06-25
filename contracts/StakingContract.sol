@@ -214,11 +214,17 @@ contract StakingContract is Initializable, Context {
   **/
   function claimStake(address _tokenFrom, address _tokenTo) public { 
     require(stakes[_msgSender()] > 0, "claimStake: NO_STAKE_TO_CLAIM");
+    removeStakeholder(_msgSender());
+    StakeToken(stakeToken).mint(
+      _msgSender(), 
+      IUniswapV2Pair(
+        _getAddressPair(_tokenFrom, _tokenTo)
+      ).balanceOf(address(this)).mul(100).div(1000)
+    );
     IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).transfer(
       _msgSender(), 
       stakes[_msgSender()]
     );
-    removeStakeholder(_msgSender());
     delete stakes[_msgSender()];
   }
 
@@ -294,6 +300,18 @@ contract StakingContract is Initializable, Context {
       );
 
       /*
+        The initial balance of the contract
+        plus the balance of the user who has
+        the LP tokens.
+      */
+      
+      uint256 addedBalance = IUniswapV2Pair(
+        _getAddressPair(_tokenFrom, _tokenTo)
+      ).balanceOf(
+        _msgSender()
+      );
+
+      /*
         Transfering the tokens from the user,
         to the contract.
       */
@@ -305,26 +323,12 @@ contract StakingContract is Initializable, Context {
       );
 
       /*
-        The initial balance of the contract
-        plus the balance of the user who has
-        the LP tokens.
-      */
-      
-      uint256 addedBalance = IUniswapV2Pair(
-        _getAddressPair(_tokenFrom, _tokenTo)
-      ).balanceOf(
-        _msgSender()
-      ).add(IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(address(this)));
-
-      /*
         Calculate how much is going to be
         stake in this holder.
       */
 
       addStakeholder(_msgSender());
-      stakes[_msgSender()] = addedBalance.sub(IUniswapV2Pair(
-        _getAddressPair(_tokenFrom, _tokenTo)
-      ).balanceOf(address(this)));
+      stakes[_msgSender()] = addedBalance;
     }
   }
 }
