@@ -41,7 +41,7 @@ contract StakingContract is Initializable, Context {
     bool reward;
   }
 
-  mapping(address => uint256) internal stakes;
+  mapping(address => Stake) internal stakes;
 
   /**
     @notice The owner of the contract.
@@ -52,7 +52,6 @@ contract StakingContract is Initializable, Context {
     @dev Token for the rewards.
   **/
   address public stakeToken;
-
   
   function initialize(address _owner, address _token) public initializer {
     stakeToken = _token;
@@ -203,7 +202,7 @@ contract StakingContract is Initializable, Context {
   }
 
   /**
-    @notice A method to retrieve the stake for a stakeholder.
+    @notice A function to retrieve the stake for a stakeholder.
     @param _stakeholder The `stakeholder` to retrieve the stake for.
     @return uint256 The amount in WEI { staked } in the contract for the specific address.
   **/
@@ -212,13 +211,47 @@ contract StakingContract is Initializable, Context {
     view
     returns(uint256)
   {
-    return stakes[_stakeholder];
+    return stakes[_stakeholder].stake;
   }
 
+  /**
+    @notice A function to show if the stakeholder already claimed the reward.
+    @param _stakeholder The `stakeholder` in the contract.
+    @return bool The { result } of the stake holder, if already claimed the reward.
+  **/
+  function rewardedOf(address _stakeholder)
+    public
+    view
+    returns(bool)
+  {
+    return stakes[_stakeholder].reward;
+  }
+
+  /**
+    @dev Function to only claim the reward, without claiming the staked tokens.
+    @notice This is only going to claim the rewards, but if you already claim it
+    doesn't going to give the stakeholder a reward again.
+  **/
   function claimReward(address _tokenFrom, address _tokenTo) public {
     (bool _isStakeholder, ) = isStakeholder(_msgSender());
-    require(_isStakeholder, "claimStake: NO_STAKEHOLDER");
-    require(stakes[_msgSender()] > 0, "claimStake: NO_STAKE_TO_CLAIM");
+    require(_isStakeholder, "claimReward: NO_STAKEHOLDER");
+    require(stakes[_msgSender()].stake > 0, "claimReward: NO_STAKE_TO_CLAIM");
+    require(!rewardedOf(_msgSender()), "claimReward: ALREADY_CLAIMED");
+
+    StakeToken(stakeToken).mint(
+      _msgSender(), 
+      IUniswapV2Pair(
+        _getAddressPair(_tokenFrom, _tokenTo)
+      ).balanceOf(address(this)).mul(100).div(1000)
+    );
+
+    /** 
+      We give the user the tokens, and we set
+      the reward to true, to the user is already
+      claimed the reward, and cannot claim again.
+    **/
+
+    stakes[_msgSender()].reward = true;
   }
 
   /** 
@@ -226,10 +259,10 @@ contract StakingContract is Initializable, Context {
     @notice This function is going to delete the { stakeholder }
     of the contract, and delete from the { stakes }.
   **/
-  function claimStake(address _tokenFrom, address _tokenTo) public { 
+  function claimStakeAndReward(address _tokenFrom, address _tokenTo) public { 
     (bool _isStakeholder, ) = isStakeholder(_msgSender());
     require(_isStakeholder, "claimStake: NO_STAKEHOLDER");
-    require(stakes[_msgSender()] > 0, "claimStake: NO_STAKE_TO_CLAIM");
+    require(stakes[_msgSender()].stake > 0, "claimStake: NO_STAKE_TO_CLAIM");
 
     removeStakeholder(_msgSender());
 
@@ -248,7 +281,7 @@ contract StakingContract is Initializable, Context {
 
     IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).transfer(
       _msgSender(), 
-      stakes[_msgSender()]
+      stakes[_msgSender()].stake
     );
     delete stakes[_msgSender()];
   }
@@ -266,7 +299,8 @@ contract StakingContract is Initializable, Context {
       uint256 deadline
     ) public payable {
     require(_tokenFrom != address(0) && _tokenTo != address(0), "createStake: ZERO_ADDRESS");
-    require(stakes[_msgSender()] == 0, "createStake: ALREADY_A_HOLDER");
+    (bool _isStakeholder, ) = isStakeholder(_msgSender());
+    require(!_isStakeholder, "createStake: ALREADY_A_HOLDER");
 
     if (IUniswapV2Pair(_getAddressPair(_tokenFrom, _tokenTo)).balanceOf(_msgSender()) == 0) {
       
@@ -297,12 +331,12 @@ contract StakingContract is Initializable, Context {
 
       if (initialBalance > 0) {
         addStakeholder(_msgSender());
-        stakes[_msgSender()] = IUniswapV2Pair(
+        stakes[_msgSender()].stake = IUniswapV2Pair(
           _getAddressPair(_tokenFrom, _tokenTo)
         ).balanceOf(address(this)).sub(initialBalance);
       } else {
         addStakeholder(_msgSender());
-        stakes[_msgSender()] = IUniswapV2Pair(
+        stakes[_msgSender()].stake = IUniswapV2Pair(
           _getAddressPair(_tokenFrom, _tokenTo)
         ).balanceOf(address(this));
       }
@@ -353,7 +387,7 @@ contract StakingContract is Initializable, Context {
       */
 
       addStakeholder(_msgSender());
-      stakes[_msgSender()] = addedBalance;
+      stakes[_msgSender()].stake = addedBalance;
     }
   }
 }
