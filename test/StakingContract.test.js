@@ -77,7 +77,7 @@ describe('StakingContract: Testing Staking Contract', () => {
 
   it('should reject the transaction, because the actual user is not a holder', async () => {
     try {
-      await stakingC.connect(account3).claimStake(WETH, DAI);
+      await stakingC.connect(account3).claimStakeAndReward(WETH, DAI);
     } catch (error) {
       assert(error);
     }
@@ -172,9 +172,35 @@ describe('StakingContract: Testing Staking Contract', () => {
   });
 
   it('should claim the stake from the contract and receive the tokens', async () => {
-    await stakingC.claimStake(WETH, DAI);
+    await stakingC.claimStakeAndReward(WETH, DAI);
 
     assert(Number(await pairV2.balanceOf(owner.address)) > 0);
     assert(Number(await stakeToken.balanceOf(owner.address)) > 0);
+  });
+
+  it('should reject the claim reward if already the user claimed the reward', async () => {
+    await stakingC
+      .connect(account3)
+      .createStake(
+        WETH,
+        DAI,
+        0,
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
+        0,
+        {
+          value: ethers.utils.parseUnits('1', 18),
+        }
+      );
+
+    assert(Number((await stakingC.stakeOf(account3.address)).toString()) > 0);
+
+    await stakingC.connect(account3).claimReward(WETH, DAI);
+
+    try {
+      await stakingC.connect(account3).claimReward(WETH, DAI);
+    } catch (error) {
+      assert(error);
+    }
   });
 });
