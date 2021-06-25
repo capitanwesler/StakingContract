@@ -7,6 +7,7 @@ const assert = require('assert');
 */
 describe('StakingContract: Testing Staking Contract', () => {
   let stakingC;
+  let stakeToken;
   let iWETH;
 
   let owner;
@@ -18,6 +19,9 @@ describe('StakingContract: Testing Staking Contract', () => {
 
   before(async () => {
     [owner, account2] = await ethers.getSigners();
+
+    const StakeToken = await ethers.getContractFactory('StakeToken');
+    stakeToken = await upgrades.deployProxy(StakeToken, ['StakeToken', 'STK']);
 
     const StakingContract = await ethers.getContractFactory('StakingContract');
     stakingC = await upgrades.deployProxy(StakingContract, [owner.address]);

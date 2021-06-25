@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./STKToken.sol";
 import "./interfaces/IWeth.sol";
@@ -39,8 +40,14 @@ contract StakingContract is Initializable, Context {
   **/
   address public owner;
 
+  /** 
+    @dev Token for the rewards.
+  **/
+  address public stakeToken;
+
   
-  function initialize(address _owner) public initializer {
+  function initialize(address _owner, address _token) public initializer {
+    stakeToken = _token;
     owner = _owner;
   }
 
@@ -202,6 +209,8 @@ contract StakingContract is Initializable, Context {
 
   /** 
     @dev This function should claim the stake in the contract.
+    @notice This function is going to delete the { stakeholder }
+    of the contract, and delete from the { stakes }.
   **/
   function claimStake(address _tokenFrom, address _tokenTo) public { 
     require(stakes[_msgSender()] > 0, "claimStake: NO_STAKE_TO_CLAIM");
